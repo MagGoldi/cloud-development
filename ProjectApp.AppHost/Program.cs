@@ -9,7 +9,6 @@ var api = builder.AddProject<Projects.ProjectApp_Api>("projectapp-api")
     .WithEndpoint("http", e => e.Port = 5179);
 
 builder.AddProject<Projects.Client_Wasm>("client")
-    .WithReference(api)
     .WaitFor(api);
 
 builder.Build().Run();
