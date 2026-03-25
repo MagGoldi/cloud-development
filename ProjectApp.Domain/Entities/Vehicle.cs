@@ -11,7 +11,7 @@ public class Vehicle
     /// <summary>Марка (производитель) транспортного средства</summary>
     public required string Brand { get; set; }
 
-    /// <summary>Модель (комплектация) транспортного средства</summary>
+    /// <summary>Модель транспортного средства</summary>
     public required string Model { get; set; }
 
     /// <summary>Государственный регистрационный номер</summary>
