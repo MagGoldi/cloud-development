@@ -1,0 +1,21 @@
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/api/vehicle/{id}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/vehicle/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 5180 },
+        { "Host": "localhost", "Port": 5181 },
+        { "Host": "localhost", "Port": 5182 }
+      ],
+      "LoadBalancerOptions": {
+        "Type": "QueryBasedLoadBalancer"
+      }
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5200"
+  }
+}

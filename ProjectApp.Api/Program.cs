@@ -7,16 +7,7 @@ builder.AddServiceDefaults();
 
 builder.AddRedisDistributedCache("cache");
 
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:5127"];
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.WithOrigins(allowedOrigins)
-              .WithMethods("GET")
-              .WithHeaders("Content-Type");
-    });
-});
+
 
 builder.Services.AddSingleton<VehicleFaker>();
 builder.Services.AddScoped<VehicleGeneratorService>();
@@ -59,7 +50,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseCors();
+
 app.MapControllers();
 app.MapDefaultEndpoints();
 
