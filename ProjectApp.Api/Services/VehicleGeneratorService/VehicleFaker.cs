@@ -45,12 +45,7 @@ public class VehicleFaker
             .RuleFor(v => v.Color, f => f.Commerce.Color())
             .RuleFor(v => v.Mileage, (f, v) => Math.Round(f.Random.Double(0, 500_000), 1))
             .RuleFor(v => v.LastServiceDate, (f, v) =>
-            {
-                var minDate = new DateOnly(v.Year, 1, 1);
-                var maxDate = DateOnly.FromDateTime(DateTime.Now);
-                var range = maxDate.DayNumber - minDate.DayNumber;
-                return minDate.AddDays(f.Random.Int(0, range));
-            });
+                f.Date.BetweenDateOnly(new DateOnly(v.Year, 1, 1), DateOnly.FromDateTime(DateTime.Now)));
     }
 
     public Vehicle Generate() => _faker.Generate();
