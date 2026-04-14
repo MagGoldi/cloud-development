@@ -5,22 +5,24 @@ using Ocelot.Values;
 
 namespace ProjectApp.Gateway.LoadBalancing;
 
+/// <summary>
+/// Балансировщик нагрузки, распределяющий запросы на основе значения параметра id
+/// из строки запроса или пути. Один и тот же id всегда направляется на один и тот же хост.
+/// </summary>
 public class QueryBasedLoadBalancer(DownstreamRoute route) : ILoadBalancer
 {
     private readonly List<ServiceHostAndPort> _hosts = route.DownstreamAddresses
             .Select(a => new ServiceHostAndPort(a.Host, a.Port))
             .ToList();
 
-    public QueryBasedLoadBalancer(IEnumerable<Service> services, DownstreamRoute route)
-        : this(route)
-    {
-    }
-
     /// <summary>
     /// Тип используемого балансировщика нагрузки.
     /// </summary>
     public string Type => nameof(QueryBasedLoadBalancer);
 
+    /// <summary>
+    /// Выбирает downstream-хост на основе идентификатора из запроса.
+    /// </summary>
     public Task<Response<ServiceHostAndPort>> LeaseAsync(HttpContext httpContext)
     {
         if (_hosts.Count == 0)
@@ -31,7 +33,7 @@ public class QueryBasedLoadBalancer(DownstreamRoute route) : ILoadBalancer
         var idRaw = httpContext.Request.Query["id"].FirstOrDefault()
                     ?? ExtractIdFromPath(httpContext.Request.Path);
 
-        int index = 0;
+        var index = 0;
         if (int.TryParse(idRaw, out var id))
             index = Math.Abs(id) % _hosts.Count;
 
@@ -39,6 +41,9 @@ public class QueryBasedLoadBalancer(DownstreamRoute route) : ILoadBalancer
             new OkResponse<ServiceHostAndPort>(_hosts[index]));
     }
 
+    /// <summary>
+    /// Освобождает ранее выданный хост (балансировщик без состояния).
+    /// </summary>
     public void Release(ServiceHostAndPort hostAndPort) { }
 
     private static string? ExtractIdFromPath(PathString path)
