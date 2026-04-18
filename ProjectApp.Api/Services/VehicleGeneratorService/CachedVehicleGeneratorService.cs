@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace ProjectApp.Api.Services.VehicleGeneratorService;
 
+/// <summary>
+/// Декоратор над генератором транспортных средств с поддержкой кэширования через Redis
+/// </summary>
 public class CachedVehicleGeneratorService(
     IVehicleGeneratorService innerService,
     IDistributedCache cache,
@@ -12,6 +15,9 @@ public class CachedVehicleGeneratorService(
 {
     private readonly int _ttlMinutes = configuration.GetValue("CacheSettings:ExpirationMinutes", 10);
 
+    /// <summary>
+    /// Возвращает транспортное средство из кэша или генерирует новое и сохраняет в кэш
+    /// </summary>
     public async Task<Vehicle> FetchByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var key = $"vehicle-{id}";

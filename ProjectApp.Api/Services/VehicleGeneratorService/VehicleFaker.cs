@@ -3,6 +3,9 @@ using ProjectApp.Domain.Entities;
 
 namespace ProjectApp.Api.Services.VehicleGeneratorService;
 
+/// <summary>
+/// Генератор тестовых данных транспортных средств на основе Bogus
+/// </summary>
 public class VehicleFaker
 {
     private static readonly string[] _fuelTypes = ["Бензин", "Дизель", "Электро", "Гибрид", "Газ"];
