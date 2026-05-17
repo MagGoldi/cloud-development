@@ -1,7 +1,6 @@
 using Amazon.SQS;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,7 +70,7 @@ public class ServiceFixture : IAsyncLifetime
         RedisConnection = await ConnectionMultiplexer.ConnectAsync(RedisConnectionString);
 
         var redisConnStr = RedisConnectionString;
-        var sqsUrl = SqsServiceUrl;
+        var sqsPort = _elasticMq.GetMappedPublicPort(9324);
 
         ApiFactory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -81,7 +80,12 @@ public class ServiceFixture : IAsyncLifetime
                     config.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["ConnectionStrings:cache"] = redisConnStr,
-                        ["Sqs:ServiceUrl"] = sqsUrl,
+                        ["LocalStack:UseLocalStack"] = "true",
+                        ["LocalStack:Session:AwsAccessKeyId"] = "test",
+                        ["LocalStack:Session:AwsAccessKeySecret"] = "test",
+                        ["LocalStack:Session:RegionName"] = "us-east-1",
+                        ["LocalStack:Config:LocalStackHost"] = "localhost",
+                        ["LocalStack:Config:EdgePort"] = sqsPort.ToString(),
                         ["Sqs:QueueName"] = "vehicle-queue"
                     });
                 });

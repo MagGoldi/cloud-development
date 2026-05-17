@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using ProjectApp.Domain.Entities;
 
 namespace ProjectApp.FileService.Services;
 
@@ -29,7 +28,7 @@ public class SqsConsumerService(
                 {
                     QueueUrl = _queueUrl,
                     MaxNumberOfMessages = 10,
-                    WaitTimeSeconds = 5
+                    WaitTimeSeconds = 1
                 }, stoppingToken);
 
                 foreach (var message in response.Messages)
@@ -62,12 +61,11 @@ public class SqsConsumerService(
     {
         try
         {
-            var vehicle = JsonSerializer.Deserialize<Vehicle>(message.Body);
-            if (vehicle != null)
-            {
-                await storageService.SaveVehicleAsync(vehicle, ct);
-                logger.LogInformation("Vehicle {Id} processed and saved to MinIO", vehicle.Id);
-            }
+            using var doc = JsonDocument.Parse(message.Body);
+            var id = doc.RootElement.GetProperty("Id").GetInt32();
+
+            await storageService.SaveRawAsync(id, message.Body, ct);
+            logger.LogInformation("Vehicle {Id} saved to MinIO from SQS message {MessageId}", id, message.MessageId);
 
             await sqsClient.DeleteMessageAsync(_queueUrl, message.ReceiptHandle, ct);
         }

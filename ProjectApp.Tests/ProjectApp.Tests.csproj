@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ProjectApp.Api\ProjectApp.Api.csproj" />
     <ProjectReference Include="..\ProjectApp.Domain\ProjectApp.Domain.csproj" />
+    <ProjectReference Include="..\ProjectApp.FileService\ProjectApp.FileService.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,11 +1,11 @@
 using ProjectApp.Domain.Entities;
 
-namespace ProjectApp.Api.Services.SqsPublisher;
+namespace ProjectApp.Api.Services.SqsProducer;
 
 /// <summary>
-/// Сервис публикации данных транспортного средства в очередь SQS
+/// Сервис отправки данных транспортного средства в очередь SQS
 /// </summary>
-public interface ISqsPublisher
+public interface ISqsProducer
 {
     /// <summary>
     /// Отправляет данные транспортного средства в очередь

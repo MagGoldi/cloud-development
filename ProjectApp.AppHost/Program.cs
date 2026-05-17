@@ -3,17 +3,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 var redis = builder.AddRedis("cache")
     .WithRedisCommander();
 
-var minio = builder.AddContainer("minio", "minio/minio")
-    .WithArgs("server", "/data", "--console-address", ":9001")
-    .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "minio-api")
-    .WithHttpEndpoint(port: 9001, targetPort: 9001, name: "minio-console")
-    .WithEnvironment("MINIO_ROOT_USER", "minioadmin")
-    .WithEnvironment("MINIO_ROOT_PASSWORD", "minioadmin");
+var minio = builder.AddMinioContainer("minio");
 
 var sqs = builder.AddContainer("sqs", "softwaremill/elasticmq-native")
     .WithHttpEndpoint(port: 9324, targetPort: 9324, name: "sqs");
 
 var fileService = builder.AddProject<Projects.ProjectApp_FileService>("projectapp-fileservice")
+    .WithReference(minio)
     .WaitFor(minio)
     .WaitFor(sqs);
 

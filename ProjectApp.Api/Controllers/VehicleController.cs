@@ -1,4 +1,4 @@
-using ProjectApp.Api.Services.SqsPublisher;
+using ProjectApp.Api.Services.SqsProducer;
 using ProjectApp.Api.Services.VehicleGeneratorService;
 using ProjectApp.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +12,7 @@ namespace ProjectApp.Api.Controllers;
 [ApiController]
 public class VehicleController(
     IVehicleGeneratorService vehicleService,
-    ISqsPublisher sqsPublisher,
+    ISqsProducer sqsProducer,
     ILogger<VehicleController> logger) : ControllerBase
 {
     /// <summary>
@@ -38,7 +38,7 @@ public class VehicleController(
 
         try
         {
-            await sqsPublisher.SendVehicleAsync(vehicle, cancellationToken);
+            await sqsProducer.SendVehicleAsync(vehicle, cancellationToken);
         }
         catch (Exception ex)
         {

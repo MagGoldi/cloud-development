@@ -3,10 +3,13 @@ using System.Text;
 using System.Text.Json;
 using Amazon.SQS.Model;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
 using ProjectApp.Domain.Entities;
+using ProjectApp.FileService.Services;
 using ProjectApp.Tests.Fixtures;
 using Xunit;
 
@@ -160,5 +163,59 @@ public class VehicleIntegrationTests : IClassFixture<ServiceFixture>, IAsyncLife
         var response = await _httpClient.GetAsync("/api/vehicle/-1");
 
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Проверяет, что объект из API совпадает с тем, что сохранено в объектном хранилище.
+    /// </summary>
+    [Fact]
+    public async Task EndToEnd_VehicleFlow_ApiResponseMatchesMinioStorage()
+    {
+        const int vehicleId = 88;
+
+        var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Sqs:ServiceUrl"] = _fixture.SqsServiceUrl,
+                ["Sqs:QueueName"] = "vehicle-queue",
+                ["Minio:BucketName"] = "vehicles"
+            })
+            .Build();
+
+        var minioStorage = new MinioStorageService(
+            _fixture.MinioClient,
+            config,
+            loggerFactory.CreateLogger<MinioStorageService>());
+
+        await minioStorage.EnsureBucketExistsAsync();
+
+        var consumer = new SqsConsumerService(
+            _fixture.SqsClient,
+            minioStorage,
+            config,
+            loggerFactory.CreateLogger<SqsConsumerService>());
+
+        using var cts = new CancellationTokenSource();
+        _ = consumer.StartAsync(cts.Token);
+
+        var apiVehicle = await _httpClient.GetFromJsonAsync<Vehicle>($"/api/vehicle/{vehicleId}");
+
+        await Task.Delay(4000);
+
+        var savedVehicle = await minioStorage.GetVehicleAsync(vehicleId, CancellationToken.None);
+
+        await cts.CancelAsync();
+        await consumer.StopAsync(CancellationToken.None);
+        await Task.Delay(500);
+
+        Assert.NotNull(apiVehicle);
+        Assert.NotNull(savedVehicle);
+        Assert.Equal(apiVehicle.Id, savedVehicle.Id);
+        Assert.Equal(apiVehicle.Vin, savedVehicle.Vin);
+        Assert.Equal(apiVehicle.Brand, savedVehicle.Brand);
+        Assert.Equal(apiVehicle.Model, savedVehicle.Model);
+        Assert.Equal(apiVehicle.Year, savedVehicle.Year);
     }
 }

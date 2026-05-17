@@ -38,9 +38,17 @@ public class MinioStorageService(
     public async Task SaveVehicleAsync(Vehicle vehicle, CancellationToken ct = default)
     {
         var json = JsonSerializer.Serialize(vehicle, new JsonSerializerOptions { WriteIndented = true });
-        var bytes = Encoding.UTF8.GetBytes(json);
+        await SaveRawAsync(vehicle.Id, json, ct);
+    }
+
+    /// <summary>
+    /// Сохраняет сырой JSON напрямую в MinIO без повторной сериализации
+    /// </summary>
+    public async Task SaveRawAsync(int id, string rawJson, CancellationToken ct = default)
+    {
+        var bytes = Encoding.UTF8.GetBytes(rawJson);
         using var stream = new MemoryStream(bytes);
-        var objectName = $"vehicle-{vehicle.Id}.json";
+        var objectName = $"vehicle-{id}.json";
 
         await minioClient.PutObjectAsync(new PutObjectArgs()
             .WithBucket(_bucketName)
@@ -49,7 +57,7 @@ public class MinioStorageService(
             .WithObjectSize(stream.Length)
             .WithContentType("application/json"), ct);
 
-        logger.LogInformation("Vehicle {Id} saved as {Object}", vehicle.Id, objectName);
+        logger.LogInformation("Vehicle {Id} saved as {Object}", id, objectName);
     }
 
     /// <summary>

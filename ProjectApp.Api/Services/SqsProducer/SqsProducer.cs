@@ -3,15 +3,15 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using ProjectApp.Domain.Entities;
 
-namespace ProjectApp.Api.Services.SqsPublisher;
+namespace ProjectApp.Api.Services.SqsProducer;
 
 /// <summary>
-/// Реализация публикации данных транспортного средства в SQS
+/// Реализация отправки данных транспортного средства в SQS
 /// </summary>
-public class SqsPublisher(
+public class SqsProducer(
     IAmazonSQS sqsClient,
     IConfiguration configuration,
-    ILogger<SqsPublisher> logger) : ISqsPublisher
+    ILogger<SqsProducer> logger) : ISqsProducer
 {
     private readonly string _queueName = configuration["Sqs:QueueName"] ?? "vehicle-queue";
     private string? _queueUrl;

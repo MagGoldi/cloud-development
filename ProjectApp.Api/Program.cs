@@ -1,5 +1,6 @@
 using Amazon.SQS;
-using ProjectApp.Api.Services.SqsPublisher;
+using LocalStack.Client.Extensions;
+using ProjectApp.Api.Services.SqsProducer;
 using ProjectApp.Api.Services.VehicleGeneratorService;
 using ProjectApp.ServiceDefaults;
 
@@ -9,17 +10,10 @@ builder.AddServiceDefaults();
 
 builder.AddRedisDistributedCache("cache");
 
-builder.Services.AddSingleton<IAmazonSQS>(sp =>
-{
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var sqsConfig = new AmazonSQSConfig
-    {
-        ServiceURL = configuration["Sqs:ServiceUrl"] ?? "http://localhost:9324"
-    };
-    return new AmazonSQSClient("test", "test", sqsConfig);
-});
+builder.Services.AddLocalStack(builder.Configuration);
+builder.Services.AddAwsService<IAmazonSQS>();
 
-builder.Services.AddSingleton<ISqsPublisher, SqsPublisher>();
+builder.Services.AddSingleton<ISqsProducer, SqsProducer>();
 
 builder.Services.AddSingleton<VehicleFaker>();
 builder.Services.AddScoped<VehicleGeneratorService>();
