@@ -1,0 +1,62 @@
+openapi: "3.0.0"
+info:
+  title: Vehicle API Gateway
+  version: "1.0"
+
+x-yc-apigateway:
+  cors:
+    origin: '*'
+    methods: '*'
+    allowedHeaders: 'Content-Type,Authorization'
+
+paths:
+  /api/vehicle/{id}:
+    get:
+      summary: Получить транспортное средство по идентификатору
+      operationId: getVehicleById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ${FUNCTION_ID}
+        service_account_id: ${SERVICE_ACCOUNT_ID}
+        tag: "$latest"
+      responses:
+        '200':
+          description: Транспортное средство успешно получено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          description: Некорректный идентификатор
+
+components:
+  schemas:
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+        vin:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        bodyType:
+          type: string
+        fuelType:
+          type: string
+        color:
+          type: string
+        mileage:
+          type: number
+        lastServiceDate:
+          type: string

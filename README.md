@@ -104,3 +104,62 @@ API-шлюз на основе Ocelot с кастомным алгоритмом
 | `GetVehicle_WithInvalidId_ReturnsBadRequest` | Запрос с невалидным ID (≤ 0) возвращает 400 Bad Request |
 | `MinioStorage_SavesAndRetrievesFile` | Запись и чтение JSON-файла из MinIO |
 | `Redis_CachesVehicleData` | Данные сохраняются в Redis после генерации |
+
+# Лабораторная работа №4 — «Переход на облачную инфраструктуру»
+
+## Описание
+
+Все сервисы перенесены в Yandex Cloud. Локальная инфраструктура (Aspire, Docker-контейнеры) заменена облачными managed-сервисами. Клиентское приложение размещено в Object Storage, сервисы генерации и обработки файлов развёрнуты как Cloud Functions, маршрутизация настроена через Serverless API Gateway, очередь сообщений перенесена в Yandex Message Queue, а объектное хранилище файлов — в отдельный бакет Object Storage.
+
+## Что реализовано
+
+### Клиент (`Client.Wasm`) → Object Storage
+- Blazor WebAssembly собирается в Release с конфигурацией `appsettings.Production.json`
+- Статические файлы загружаются в бакет `vehicles-client`
+- Включён режим статического сайта с `index.html` по умолчанию
+- `BaseAddress` клиента указывает на URL API Gateway
+
+### Сервис генерации (`ProjectApp.Api.Function`) → Cloud Function
+- Проект `ProjectApp.Api.Function` — самодостаточная Cloud Function (без Aspire, без Redis)
+- Точка входа: `ApiFunction.Handler`, метод `FunctionHandler(string input) : string`
+- Runtime: `dotnet8`, память: 256 МБ, таймаут: 30 с
+- Деплой через архив с исходным кодом (`.cs` + `.csproj`); YC компилирует на своей стороне
+- Получает HTTP-запрос от API Gateway, парсит `id` из поля `pathParams`
+- Генерирует транспортное средство случайным образом, публикует JSON в очередь через `AWSSDK.SQS`
+- Возвращает JSON-ответ с CORS-заголовками в формате `{ statusCode, headers, body }`
+- Конфигурация через переменные окружения: `SQS_QUEUE_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+### API Gateway → Serverless API Gateway
+- OpenAPI 3.0 спецификация (`cloud/api-gateway.yaml`)
+- Маршрут `GET /api/vehicle/{id}` интегрирован с Cloud Function через расширение `x-yc-apigateway-integration: type: cloud_functions`
+- CORS настроен на уровне Gateway (`x-yc-apigateway: cors`)
+- Балансировка нагрузки при масштабировании осуществляется платформой автоматически
+
+### Брокер сообщений → Yandex Message Queue
+- Очередь `vehicle-queue` создаётся через boto3 (SQS-совместимый API)
+- Endpoint: `https://message-queue.api.cloud.yandex.net`, регион `ru-central1`
+- Триггер `vehicle-mq-trigger` связывает очередь с Cloud Function файлового сервиса (batch size 10, окно 10 с)
+
+### Файловый сервис (`ProjectApp.FileService.Function`) → Cloud Function
+- Проект `ProjectApp.FileService.Function` — Cloud Function с триггером на Message Queue
+- Точка входа: `FileServiceFunction.Handler`, метод `FunctionHandler(string input) : string`
+- Runtime: `dotnet8`, память: 256 МБ, таймаут: 60 с
+- Деплой через архив с исходным кодом; зависимость `AWSSDK.S3` устанавливается YC при сборке
+- Получает пакет сообщений из очереди, декодирует тело (base64 или plain) и сохраняет в Object Storage
+- Конфигурация через переменные окружения: `S3_ENDPOINT`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+### Объектное хранилище → Object Storage
+- Бакет `vehicle-data-store` — хранит JSON-файлы транспортных средств (`vehicle-{id}.json`)
+- Бакет создаётся через boto3 от имени сервисного аккаунта (владелец — `vehicle-sa`)
+- Доступ через `AWSSDK.S3` (YC Object Storage совместим с S3 API), endpoint: `https://storage.yandexcloud.net`
+
+
+## Ресурсы
+
+| Ресурс | Значение |
+|--------|----------|
+| API Gateway URL | `https://d5djaicgufnt5rijrt0u.p8361f8z.apigw.yandexcloud.net` |
+| Клиент | `http://vehicles-client.website.yandexcloud.net` |
+| Очередь | `vehicle-queue` |
+| Бакет файлов | `vehicle-data-store` |
+| Бакет клиента | `vehicles-client` |

@@ -416,3 +416,13 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+vehicle-publish/
+publish/
+fileservice-publish/
+
+*.zip
+
+# Yandex Cloud — артефакты сборки и деплоя
+cloud/build/
+Client.Wasm/wwwroot/appsettings.Production.json
