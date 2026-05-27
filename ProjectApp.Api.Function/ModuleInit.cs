@@ -9,6 +9,7 @@ namespace ApiFunction;
 public static class ModuleInit
 {
     [ModuleInitializer]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2255")]
     public static void Initialize()
     {
         AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;

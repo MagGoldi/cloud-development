@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
+export PATH="$HOME/.yandex-cloud/bin:$PATH"
+
 source "$SCRIPT_DIR/env.sh"
 
 BUILD_DIR="$SCRIPT_DIR/build"
@@ -129,6 +131,8 @@ rm -f "$BUILD_DIR/api-function.zip"
 cd "$API_SRC_DIR"
 zip -r "$BUILD_DIR/api-function.zip" \
     Handler.cs \
+    ModuleInit.cs \
+    Services/ \
     ProjectApp.Api.Function.csproj \
     -q
 cd "$ROOT_DIR"
@@ -169,6 +173,7 @@ rm -f "$BUILD_DIR/file-function.zip"
 cd "$FILE_SRC_DIR"
 zip -r "$BUILD_DIR/file-function.zip" \
     Handler.cs \
+    Models/ \
     ProjectApp.FileService.Function.csproj \
     -q
 cd "$ROOT_DIR"

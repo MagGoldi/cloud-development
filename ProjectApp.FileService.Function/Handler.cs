@@ -1,16 +1,12 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using FileServiceFunction.Models;
 
 namespace FileServiceFunction;
 
-/// <summary>
-/// Cloud Function файлового сервиса. Получает пакет сообщений из Yandex Message Queue
-/// и сохраняет данные каждого транспортного средства в Yandex Object Storage.
-/// </summary>
 public class Handler
 {
     private readonly IAmazonS3 _s3Client;
@@ -33,11 +29,6 @@ public class Handler
         _s3Client = new AmazonS3Client(credentials, config);
     }
 
-    /// <summary>
-    /// Точка входа Cloud Function. Обрабатывает пакет сообщений из очереди
-    /// и сохраняет каждое транспортное средство как JSON-файл в Object Storage.
-    /// </summary>
-    /// <param name="input">Сериализованное событие триггера Message Queue</param>
     public string FunctionHandler(string input)
     {
         QueueTriggerEvent? trigger = null;
@@ -72,9 +63,14 @@ public class Handler
         }
 
         using var doc = JsonDocument.Parse(json);
-        var idProp = doc.RootElement.TryGetProperty("id", out var idEl) ? idEl
-                   : doc.RootElement.TryGetProperty("Id", out var idEl2) ? idEl2 : default;
-        var id = idProp.ValueKind == JsonValueKind.Number ? idProp.GetInt32() : 0;
+
+        var hasId = doc.RootElement.TryGetProperty("id", out var idEl)
+                    || doc.RootElement.TryGetProperty("Id", out idEl);
+
+        if (!hasId || idEl.ValueKind != JsonValueKind.Number)
+            throw new InvalidOperationException("Message does not contain a valid numeric 'id' field.");
+
+        var id = idEl.GetInt32();
         var objectName = $"vehicle-{id}.json";
 
         var bytes = Encoding.UTF8.GetBytes(json);
@@ -90,40 +86,4 @@ public class Handler
 
         Console.WriteLine($"[INFO] Saved {objectName}");
     }
-}
-
-public class QueueTriggerEvent
-{
-    [JsonPropertyName("messages")]
-    public List<QueueMessage> Messages { get; set; } = [];
-}
-
-public class QueueMessage
-{
-    [JsonPropertyName("event_metadata")]
-    public EventMetadata? EventMetadata { get; set; }
-
-    [JsonPropertyName("details")]
-    public MessageDetails? Details { get; set; }
-}
-
-public class EventMetadata
-{
-    [JsonPropertyName("event_id")] public string EventId { get; set; } = "";
-    [JsonPropertyName("event_type")] public string EventType { get; set; } = "";
-    [JsonPropertyName("created_at")] public string CreatedAt { get; set; } = "";
-}
-
-public class MessageDetails
-{
-    [JsonPropertyName("queue_id")] public string QueueId { get; set; } = "";
-    [JsonPropertyName("message")] public SqsMessage? Message { get; set; }
-}
-
-public class SqsMessage
-{
-    [JsonPropertyName("message_id")] public string MessageId { get; set; } = "";
-    [JsonPropertyName("md5_of_body")] public string Md5OfBody { get; set; } = "";
-    [JsonPropertyName("body")] public string Body { get; set; } = "";
-    [JsonPropertyName("attributes")] public Dictionary<string, string>? Attributes { get; set; }
 }
