@@ -29,7 +29,7 @@ public class Handler
         _s3Client = new AmazonS3Client(credentials, config);
     }
 
-    public string FunctionHandler(string input)
+    public async Task<string> FunctionHandler(string input)
     {
         QueueTriggerEvent? trigger = null;
         try { trigger = JsonSerializer.Deserialize<QueueTriggerEvent>(input ?? "{}"); } catch { }
@@ -37,7 +37,7 @@ public class Handler
         var messages = trigger?.Messages ?? [];
         foreach (var message in messages)
         {
-            try { ProcessMessage(message); }
+            try { await ProcessMessageAsync(message); }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] {message.Details?.Message?.MessageId}: {ex.Message}");
@@ -47,7 +47,7 @@ public class Handler
         return "{}";
     }
 
-    private void ProcessMessage(QueueMessage message)
+    private async Task ProcessMessageAsync(QueueMessage message)
     {
         var rawBody = message.Details?.Message?.Body ?? "";
 
@@ -76,13 +76,13 @@ public class Handler
         var bytes = Encoding.UTF8.GetBytes(json);
         using var stream = new MemoryStream(bytes);
 
-        _s3Client.PutObjectAsync(new PutObjectRequest
+        await _s3Client.PutObjectAsync(new PutObjectRequest
         {
             BucketName = _bucketName,
             Key = objectName,
             InputStream = stream,
             ContentType = "application/json"
-        }).GetAwaiter().GetResult();
+        });
 
         Console.WriteLine($"[INFO] Saved {objectName}");
     }

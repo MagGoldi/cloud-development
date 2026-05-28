@@ -9,7 +9,7 @@ public class Handler
     private static readonly VehicleFaker Faker = new();
     private static readonly HttpClient Http = new();
 
-    public string FunctionHandler(string input)
+    public async Task<string> FunctionHandler(string input)
     {
         FunctionRequest? req = null;
         try { req = JsonSerializer.Deserialize<FunctionRequest>(input ?? "{}"); } catch { }
@@ -26,7 +26,7 @@ public class Handler
         if (!int.TryParse(idRaw, out var id) || id <= 0)
             return Envelope(400, """{"error":"Identifier must be a positive number."}""");
 
-        var cached = TryGetCachedAsync(id).GetAwaiter().GetResult();
+        var cached = await TryGetCachedAsync(id);
         if (cached != null)
             return Envelope(200, cached);
 
@@ -34,7 +34,7 @@ public class Handler
 
         var producer = SqsProducer.TryCreate();
         if (producer != null)
-            Task.Run(() => producer.PublishAsync(json));
+            await producer.PublishAsync(json);
 
         return Envelope(200, json);
     }
